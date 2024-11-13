@@ -1,0 +1,48 @@
+// src/script.js
+(() => {
+  const help = helper();
+  const {
+    getKeys
+  } = help;
+  const {
+    WIDTH,
+    HEIGHT,
+    createWalls
+  } = kruskal_main();
+  function main() {
+    const scene = new THREE.Scene;
+    const viewport = document.querySelector(".viewport");
+    const view_size = viewport.getBoundingClientRect();
+    const camera = new THREE.PerspectiveCamera(75, view_size.width / view_size.height, 0.1, 1000);
+    const camera2 = new THREE.PerspectiveCamera(75, view_size.width / view_size.height, 0.1, 1000);
+    camera2.position.x = WIDTH / 2;
+    camera2.position.y = 400;
+    camera2.position.z = HEIGHT / 2;
+    camera2.rotateX(-1 * Math.PI / 2);
+    const camera_group = new THREE.Group;
+    camera_group.add(camera);
+    camera_group.position.x = WIDTH / 2;
+    camera_group.position.y = 2;
+    camera_group.position.z = HEIGHT / 2;
+    const { animate: fpAnimate } = firstPersonMovement({ camera, camera_group, viewport, help });
+    const renderer = new THREE.WebGLRenderer({
+      canvas: viewport
+    });
+    renderer.setSize(view_size.width, view_size.height);
+    const { material } = grassMaterial();
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(WIDTH, 1, HEIGHT), material);
+    floor.position.x = WIDTH / 2;
+    floor.position.y = -1;
+    floor.position.z = HEIGHT / 2;
+    scene.add(floor);
+    scene.add(camera_group);
+    createWalls({ scene });
+    function animate() {
+      const { space } = getKeys();
+      fpAnimate();
+      renderer.render(scene, !space ? camera2 : camera);
+    }
+    renderer.setAnimationLoop(animate);
+  }
+  main();
+})();
