@@ -1,4 +1,7 @@
-function grassMaterial() {
+import * as THREE from 'three';
+import { perlinNoise } from '../fog/perlinNoise';
+
+export function grassMaterial() {
 
     const { noise } = perlinNoise();
 

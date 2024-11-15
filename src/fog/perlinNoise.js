@@ -1,4 +1,4 @@
-const perlinNoise = () => { return { noise: `
+export const perlinNoise = () => { return { noise: `
 //	Classic Perlin 3D Noise 
 //	by Stefan Gustavson
 //

@@ -1,4 +1,6 @@
-function firstPersonMovement({ camera, camera_group, viewport, help }) {
+import * as THREE from 'three';
+
+export function firstPersonMovement({ camera, camera_group, viewport, help }) {
 
     const {
         listenForKeys,

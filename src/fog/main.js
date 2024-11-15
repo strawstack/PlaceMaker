@@ -1,4 +1,6 @@
-function fog({ scene }) {
+import { fogReplace } from "./fogReplace";
+
+export function fog({ scene }) {
 
     const clock = new THREE.Clock();
 

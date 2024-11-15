@@ -1,4 +1,4 @@
-const helper = () => {
+export const helper = () => {
 
     const keys = {
         keyw: false,

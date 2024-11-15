@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bun run server.js"
   },
-  "devDependencies": {
-    "@types/bun": "latest"
+  "dependencies": {
+    "three": "^0.170.0"
   }
 }

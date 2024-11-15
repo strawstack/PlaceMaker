@@ -1,14 +1,24 @@
+import * as THREE from 'three';
+
+import { helper } from './helper';
+
+import {
+    WIDTH,
+    HEIGHT,
+    createWalls
+} from './kruskal/main';
+
+import { firstPersonMovement } from "./firstPersonMovement";
+
+import { fog } from './fog/main';
+
+import { grassMaterial } from './grass/material';
+
 (() => {
     const help = helper();
     const {
         getKeys
     } = help;
-
-    const {
-        WIDTH,
-        HEIGHT,
-        createWalls
-    } = kruskal_main();
 
     function main() {
         const scene = new THREE.Scene();

@@ -1,4 +1,6 @@
-function fogReplace() {
+import { perlinNoise } from "./perlinNoise";
+
+export function fogReplace() {
 
     const { noise } = perlinNoise();
 
