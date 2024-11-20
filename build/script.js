@@ -201,6 +201,7 @@ class EventDispatcher {
   }
 }
 var _lut = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d", "0e", "0f", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d", "1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "2a", "2b", "2c", "2d", "2e", "2f", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b", "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "4a", "4b", "4c", "4d", "4e", "4f", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "5a", "5b", "5c", "5d", "5e", "5f", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d", "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "8a", "8b", "8c", "8d", "8e", "8f", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9a", "9b", "9c", "9d", "9e", "9f", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd", "be", "bf", "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "ca", "cb", "cc", "cd", "ce", "cf", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "da", "db", "dc", "dd", "de", "df", "e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "fa", "fb", "fc", "fd", "fe", "ff"];
+var _seed = 1234567;
 var DEG2RAD = Math.PI / 180;
 var RAD2DEG = 180 / Math.PI;
 function generateUUID() {
@@ -217,8 +218,106 @@ function clamp(value, min, max) {
 function euclideanModulo(n, m) {
   return (n % m + m) % m;
 }
+function mapLinear(x, a1, a2, b1, b2) {
+  return b1 + (x - a1) * (b2 - b1) / (a2 - a1);
+}
+function inverseLerp(x, y, value) {
+  if (x !== y) {
+    return (value - x) / (y - x);
+  } else {
+    return 0;
+  }
+}
 function lerp(x, y, t) {
   return (1 - t) * x + t * y;
+}
+function damp(x, y, lambda, dt) {
+  return lerp(x, y, 1 - Math.exp(-lambda * dt));
+}
+function pingpong(x, length = 1) {
+  return length - Math.abs(euclideanModulo(x, length * 2) - length);
+}
+function smoothstep(x, min, max) {
+  if (x <= min)
+    return 0;
+  if (x >= max)
+    return 1;
+  x = (x - min) / (max - min);
+  return x * x * (3 - 2 * x);
+}
+function smootherstep(x, min, max) {
+  if (x <= min)
+    return 0;
+  if (x >= max)
+    return 1;
+  x = (x - min) / (max - min);
+  return x * x * x * (x * (x * 6 - 15) + 10);
+}
+function randInt(low, high) {
+  return low + Math.floor(Math.random() * (high - low + 1));
+}
+function randFloat(low, high) {
+  return low + Math.random() * (high - low);
+}
+function randFloatSpread(range) {
+  return range * (0.5 - Math.random());
+}
+function seededRandom(s) {
+  if (s !== undefined)
+    _seed = s;
+  let t = _seed += 1831565813;
+  t = Math.imul(t ^ t >>> 15, t | 1);
+  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+function degToRad(degrees) {
+  return degrees * DEG2RAD;
+}
+function radToDeg(radians) {
+  return radians * RAD2DEG;
+}
+function isPowerOfTwo(value) {
+  return (value & value - 1) === 0 && value !== 0;
+}
+function ceilPowerOfTwo(value) {
+  return Math.pow(2, Math.ceil(Math.log(value) / Math.LN2));
+}
+function floorPowerOfTwo(value) {
+  return Math.pow(2, Math.floor(Math.log(value) / Math.LN2));
+}
+function setQuaternionFromProperEuler(q, a, b, c, order) {
+  const cos = Math.cos;
+  const sin = Math.sin;
+  const c2 = cos(b / 2);
+  const s2 = sin(b / 2);
+  const c13 = cos((a + c) / 2);
+  const s13 = sin((a + c) / 2);
+  const c1_3 = cos((a - c) / 2);
+  const s1_3 = sin((a - c) / 2);
+  const c3_1 = cos((c - a) / 2);
+  const s3_1 = sin((c - a) / 2);
+  switch (order) {
+    case "XYX":
+      q.set(c2 * s13, s2 * c1_3, s2 * s1_3, c2 * c13);
+      break;
+    case "YZY":
+      q.set(s2 * s1_3, c2 * s13, s2 * c1_3, c2 * c13);
+      break;
+    case "ZXZ":
+      q.set(s2 * c1_3, s2 * s1_3, c2 * s13, c2 * c13);
+      break;
+    case "XZX":
+      q.set(c2 * s13, s2 * s3_1, s2 * c3_1, c2 * c13);
+      break;
+    case "YXY":
+      q.set(s2 * c3_1, c2 * s13, s2 * s3_1, c2 * c13);
+      break;
+    case "ZYZ":
+      q.set(s2 * s3_1, s2 * c3_1, c2 * s13, c2 * c13);
+      break;
+    default:
+      console.warn("THREE.MathUtils: .setQuaternionFromProperEuler() encountered an unknown order: " + order);
+  }
 }
 function denormalize(value, array) {
   switch (array.constructor) {
@@ -260,6 +359,33 @@ function normalize(value, array) {
       throw new Error("Invalid component type.");
   }
 }
+var MathUtils = {
+  DEG2RAD,
+  RAD2DEG,
+  generateUUID,
+  clamp,
+  euclideanModulo,
+  mapLinear,
+  inverseLerp,
+  lerp,
+  damp,
+  pingpong,
+  smoothstep,
+  smootherstep,
+  randInt,
+  randFloat,
+  randFloatSpread,
+  seededRandom,
+  degToRad,
+  radToDeg,
+  isPowerOfTwo,
+  ceilPowerOfTwo,
+  floorPowerOfTwo,
+  setQuaternionFromProperEuler,
+  normalize,
+  denormalize
+};
+
 class Vector2 {
   constructor(x = 0, y = 0) {
     Vector2.prototype.isVector2 = true;
@@ -18711,6 +18837,47 @@ class Loader {
   }
 }
 Loader.DEFAULT_MATERIAL_NAME = "__DEFAULT";
+class Clock {
+  constructor(autoStart = true) {
+    this.autoStart = autoStart;
+    this.startTime = 0;
+    this.oldTime = 0;
+    this.elapsedTime = 0;
+    this.running = false;
+  }
+  start() {
+    this.startTime = now();
+    this.oldTime = this.startTime;
+    this.elapsedTime = 0;
+    this.running = true;
+  }
+  stop() {
+    this.getElapsedTime();
+    this.running = false;
+    this.autoStart = false;
+  }
+  getElapsedTime() {
+    this.getDelta();
+    return this.elapsedTime;
+  }
+  getDelta() {
+    let diff = 0;
+    if (this.autoStart && !this.running) {
+      this.start();
+      return 0;
+    }
+    if (this.running) {
+      const newTime = now();
+      diff = (newTime - this.oldTime) / 1000;
+      this.oldTime = newTime;
+      this.elapsedTime += diff;
+    }
+    return diff;
+  }
+}
+function now() {
+  return performance.now();
+}
 var _RESERVED_CHARS_RE = "\\[\\]\\.:\\/";
 var _reservedRe = new RegExp("[" + _RESERVED_CHARS_RE + "]", "g");
 var _wordChar = "[^" + _RESERVED_CHARS_RE + "]";
@@ -19071,6 +19238,68 @@ PropertyBinding.prototype.SetterByBindingTypeAndVersioning = [
   ]
 ];
 var _controlInterpolantsResultBuffer = new Float32Array(1);
+class Spherical {
+  constructor(radius = 1, phi = 0, theta = 0) {
+    this.radius = radius;
+    this.phi = phi;
+    this.theta = theta;
+    return this;
+  }
+  set(radius, phi, theta) {
+    this.radius = radius;
+    this.phi = phi;
+    this.theta = theta;
+    return this;
+  }
+  copy(other) {
+    this.radius = other.radius;
+    this.phi = other.phi;
+    this.theta = other.theta;
+    return this;
+  }
+  makeSafe() {
+    const EPS = 0.000001;
+    this.phi = Math.max(EPS, Math.min(Math.PI - EPS, this.phi));
+    return this;
+  }
+  setFromVector3(v) {
+    return this.setFromCartesianCoords(v.x, v.y, v.z);
+  }
+  setFromCartesianCoords(x, y, z) {
+    this.radius = Math.sqrt(x * x + y * y + z * z);
+    if (this.radius === 0) {
+      this.theta = 0;
+      this.phi = 0;
+    } else {
+      this.theta = Math.atan2(x, z);
+      this.phi = Math.acos(clamp(y / this.radius, -1, 1));
+    }
+    return this;
+  }
+  clone() {
+    return new this.constructor().copy(this);
+  }
+}
+class Controls extends EventDispatcher {
+  constructor(object, domElement = null) {
+    super();
+    this.object = object;
+    this.domElement = domElement;
+    this.enabled = true;
+    this.state = -1;
+    this.keys = {};
+    this.mouseButtons = { LEFT: null, MIDDLE: null, RIGHT: null };
+    this.touches = { ONE: null, TWO: null };
+  }
+  connect() {
+  }
+  disconnect() {
+  }
+  dispose() {
+  }
+  update() {
+  }
+}
 if (typeof __THREE_DEVTOOLS__ !== "undefined") {
   __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: {
     revision: REVISION
@@ -19082,6 +19311,583 @@ if (typeof window !== "undefined") {
   } else {
     window.__THREE__ = REVISION;
   }
+}
+
+// node_modules/three/examples/jsm/controls/FirstPersonControls.js
+var _lookDirection = new Vector3;
+var _spherical = new Spherical;
+var _target2 = new Vector3;
+var _targetPosition = new Vector3;
+
+class FirstPersonControls extends Controls {
+  constructor(object, domElement = null) {
+    super(object, domElement);
+    this.movementSpeed = 1;
+    this.lookSpeed = 0.005;
+    this.lookVertical = true;
+    this.autoForward = false;
+    this.activeLook = true;
+    this.heightSpeed = false;
+    this.heightCoef = 1;
+    this.heightMin = 0;
+    this.heightMax = 1;
+    this.constrainVertical = false;
+    this.verticalMin = 0;
+    this.verticalMax = Math.PI;
+    this.mouseDragOn = false;
+    this._autoSpeedFactor = 0;
+    this._pointerX = 0;
+    this._pointerY = 0;
+    this._moveForward = false;
+    this._moveBackward = false;
+    this._moveLeft = false;
+    this._moveRight = false;
+    this._viewHalfX = 0;
+    this._viewHalfY = 0;
+    this._lat = 0;
+    this._lon = 0;
+    this._onPointerMove = onPointerMove.bind(this);
+    this._onPointerDown = onPointerDown.bind(this);
+    this._onPointerUp = onPointerUp.bind(this);
+    this._onContextMenu = onContextMenu.bind(this);
+    this._onKeyDown = onKeyDown.bind(this);
+    this._onKeyUp = onKeyUp.bind(this);
+    if (domElement !== null) {
+      this.connect();
+      this.handleResize();
+    }
+    this._setOrientation();
+  }
+  connect() {
+    window.addEventListener("keydown", this._onKeyDown);
+    window.addEventListener("keyup", this._onKeyUp);
+    this.domElement.addEventListener("pointermove", this._onPointerMove);
+    this.domElement.addEventListener("pointerdown", this._onPointerDown);
+    this.domElement.addEventListener("pointerup", this._onPointerUp);
+    this.domElement.addEventListener("contextmenu", this._onContextMenu);
+  }
+  disconnect() {
+    window.removeEventListener("keydown", this._onKeyDown);
+    window.removeEventListener("keyup", this._onKeyUp);
+    this.domElement.removeEventListener("pointerdown", this._onPointerMove);
+    this.domElement.removeEventListener("pointermove", this._onPointerDown);
+    this.domElement.removeEventListener("pointerup", this._onPointerUp);
+    this.domElement.removeEventListener("contextmenu", this._onContextMenu);
+  }
+  dispose() {
+    this.disconnect();
+  }
+  handleResize() {
+    if (this.domElement === document) {
+      this._viewHalfX = window.innerWidth / 2;
+      this._viewHalfY = window.innerHeight / 2;
+    } else {
+      this._viewHalfX = this.domElement.offsetWidth / 2;
+      this._viewHalfY = this.domElement.offsetHeight / 2;
+    }
+  }
+  lookAt(x, y, z) {
+    if (x.isVector3) {
+      _target2.copy(x);
+    } else {
+      _target2.set(x, y, z);
+    }
+    this.object.lookAt(_target2);
+    this._setOrientation();
+    return this;
+  }
+  update(delta) {
+    if (this.enabled === false)
+      return;
+    if (this.heightSpeed) {
+      const y = MathUtils.clamp(this.object.position.y, this.heightMin, this.heightMax);
+      const heightDelta = y - this.heightMin;
+      this._autoSpeedFactor = delta * (heightDelta * this.heightCoef);
+    } else {
+      this._autoSpeedFactor = 0;
+    }
+    const actualMoveSpeed = delta * this.movementSpeed;
+    if (this._moveForward || this.autoForward && !this._moveBackward)
+      this.object.translateZ(-(actualMoveSpeed + this._autoSpeedFactor));
+    if (this._moveBackward)
+      this.object.translateZ(actualMoveSpeed);
+    if (this._moveLeft)
+      this.object.translateX(-actualMoveSpeed);
+    if (this._moveRight)
+      this.object.translateX(actualMoveSpeed);
+    if (this._moveUp)
+      this.object.translateY(actualMoveSpeed);
+    if (this._moveDown)
+      this.object.translateY(-actualMoveSpeed);
+    let actualLookSpeed = delta * this.lookSpeed;
+    if (!this.activeLook) {
+      actualLookSpeed = 0;
+    }
+    let verticalLookRatio = 1;
+    if (this.constrainVertical) {
+      verticalLookRatio = Math.PI / (this.verticalMax - this.verticalMin);
+    }
+    this._lon -= this._pointerX * actualLookSpeed;
+    if (this.lookVertical)
+      this._lat -= this._pointerY * actualLookSpeed * verticalLookRatio;
+    this._lat = Math.max(-85, Math.min(85, this._lat));
+    let phi = MathUtils.degToRad(90 - this._lat);
+    const theta = MathUtils.degToRad(this._lon);
+    if (this.constrainVertical) {
+      phi = MathUtils.mapLinear(phi, 0, Math.PI, this.verticalMin, this.verticalMax);
+    }
+    const position = this.object.position;
+    _targetPosition.setFromSphericalCoords(1, phi, theta).add(position);
+    this.object.lookAt(_targetPosition);
+  }
+  _setOrientation() {
+    const quaternion = this.object.quaternion;
+    _lookDirection.set(0, 0, -1).applyQuaternion(quaternion);
+    _spherical.setFromVector3(_lookDirection);
+    this._lat = 90 - MathUtils.radToDeg(_spherical.phi);
+    this._lon = MathUtils.radToDeg(_spherical.theta);
+  }
+}
+function onPointerDown(event) {
+  if (this.domElement !== document) {
+    this.domElement.focus();
+  }
+  if (this.activeLook) {
+    switch (event.button) {
+      case 0:
+        this._moveForward = true;
+        break;
+      case 2:
+        this._moveBackward = true;
+        break;
+    }
+  }
+  this.mouseDragOn = true;
+}
+function onPointerUp(event) {
+  if (this.activeLook) {
+    switch (event.button) {
+      case 0:
+        this._moveForward = false;
+        break;
+      case 2:
+        this._moveBackward = false;
+        break;
+    }
+  }
+  this.mouseDragOn = false;
+}
+function onPointerMove(event) {
+  if (this.domElement === document) {
+    this._pointerX = event.pageX - this._viewHalfX;
+    this._pointerY = event.pageY - this._viewHalfY;
+  } else {
+    this._pointerX = event.pageX - this.domElement.offsetLeft - this._viewHalfX;
+    this._pointerY = event.pageY - this.domElement.offsetTop - this._viewHalfY;
+  }
+}
+function onKeyDown(event) {
+  switch (event.code) {
+    case "ArrowUp":
+    case "KeyW":
+      this._moveForward = true;
+      break;
+    case "ArrowLeft":
+    case "KeyA":
+      this._moveLeft = true;
+      break;
+    case "ArrowDown":
+    case "KeyS":
+      this._moveBackward = true;
+      break;
+    case "ArrowRight":
+    case "KeyD":
+      this._moveRight = true;
+      break;
+    case "KeyR":
+      this._moveUp = true;
+      break;
+    case "KeyF":
+      this._moveDown = true;
+      break;
+  }
+}
+function onKeyUp(event) {
+  switch (event.code) {
+    case "ArrowUp":
+    case "KeyW":
+      this._moveForward = false;
+      break;
+    case "ArrowLeft":
+    case "KeyA":
+      this._moveLeft = false;
+      break;
+    case "ArrowDown":
+    case "KeyS":
+      this._moveBackward = false;
+      break;
+    case "ArrowRight":
+    case "KeyD":
+      this._moveRight = false;
+      break;
+    case "KeyR":
+      this._moveUp = false;
+      break;
+    case "KeyF":
+      this._moveDown = false;
+      break;
+  }
+}
+function onContextMenu(event) {
+  if (this.enabled === false)
+    return;
+  event.preventDefault();
+}
+
+// node_modules/three/examples/jsm/controls/FlyControls.js
+var _changeEvent = { type: "change" };
+var _EPS = 0.000001;
+var _tmpQuaternion = new Quaternion;
+
+class FlyControls extends Controls {
+  constructor(object, domElement = null) {
+    super(object, domElement);
+    this.movementSpeed = 1;
+    this.rollSpeed = 0.005;
+    this.dragToLook = false;
+    this.autoForward = false;
+    this._moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
+    this._moveVector = new Vector3(0, 0, 0);
+    this._rotationVector = new Vector3(0, 0, 0);
+    this._lastQuaternion = new Quaternion;
+    this._lastPosition = new Vector3;
+    this._status = 0;
+    this._onKeyDown = onKeyDown2.bind(this);
+    this._onKeyUp = onKeyUp2.bind(this);
+    this._onPointerMove = onPointerMove2.bind(this);
+    this._onPointerDown = onPointerDown2.bind(this);
+    this._onPointerUp = onPointerUp2.bind(this);
+    this._onPointerCancel = onPointerCancel.bind(this);
+    this._onContextMenu = onContextMenu2.bind(this);
+    if (domElement !== null) {
+      this.connect();
+    }
+  }
+  connect() {
+    window.addEventListener("keydown", this._onKeyDown);
+    window.addEventListener("keyup", this._onKeyUp);
+    this.domElement.addEventListener("pointermove", this._onPointerMove);
+    this.domElement.addEventListener("pointerdown", this._onPointerDown);
+    this.domElement.addEventListener("pointerup", this._onPointerUp);
+    this.domElement.addEventListener("pointercancel", this._onPointerCancel);
+    this.domElement.addEventListener("contextmenu", this._onContextMenu);
+  }
+  disconnect() {
+    window.removeEventListener("keydown", this._onKeyDown);
+    window.removeEventListener("keyup", this._onKeyUp);
+    this.domElement.removeEventListener("pointermove", this._onPointerMove);
+    this.domElement.removeEventListener("pointerdown", this._onPointerDown);
+    this.domElement.removeEventListener("pointerup", this._onPointerUp);
+    this.domElement.removeEventListener("pointercancel", this._onPointerCancel);
+    this.domElement.removeEventListener("contextmenu", this._onContextMenu);
+  }
+  dispose() {
+    this.disconnect();
+  }
+  update(delta) {
+    if (this.enabled === false)
+      return;
+    const object = this.object;
+    const moveMult = delta * this.movementSpeed;
+    const rotMult = delta * this.rollSpeed;
+    object.translateX(this._moveVector.x * moveMult);
+    object.translateY(this._moveVector.y * moveMult);
+    object.translateZ(this._moveVector.z * moveMult);
+    _tmpQuaternion.set(this._rotationVector.x * rotMult, this._rotationVector.y * rotMult, this._rotationVector.z * rotMult, 1).normalize();
+    object.quaternion.multiply(_tmpQuaternion);
+    if (this._lastPosition.distanceToSquared(object.position) > _EPS || 8 * (1 - this._lastQuaternion.dot(object.quaternion)) > _EPS) {
+      this.dispatchEvent(_changeEvent);
+      this._lastQuaternion.copy(object.quaternion);
+      this._lastPosition.copy(object.position);
+    }
+  }
+  _updateMovementVector() {
+    const forward = this._moveState.forward || this.autoForward && !this._moveState.back ? 1 : 0;
+    this._moveVector.x = -this._moveState.left + this._moveState.right;
+    this._moveVector.y = -this._moveState.down + this._moveState.up;
+    this._moveVector.z = -forward + this._moveState.back;
+  }
+  _updateRotationVector() {
+    this._rotationVector.x = -this._moveState.pitchDown + this._moveState.pitchUp;
+    this._rotationVector.y = -this._moveState.yawRight + this._moveState.yawLeft;
+    this._rotationVector.z = -this._moveState.rollRight + this._moveState.rollLeft;
+  }
+  _getContainerDimensions() {
+    if (this.domElement != document) {
+      return {
+        size: [this.domElement.offsetWidth, this.domElement.offsetHeight],
+        offset: [this.domElement.offsetLeft, this.domElement.offsetTop]
+      };
+    } else {
+      return {
+        size: [window.innerWidth, window.innerHeight],
+        offset: [0, 0]
+      };
+    }
+  }
+}
+function onKeyDown2(event) {
+  if (event.altKey || this.enabled === false) {
+    return;
+  }
+  switch (event.code) {
+    case "ShiftLeft":
+    case "ShiftRight":
+      this.movementSpeedMultiplier = 0.1;
+      break;
+    case "KeyW":
+      this._moveState.forward = 1;
+      break;
+    case "KeyS":
+      this._moveState.back = 1;
+      break;
+    case "KeyA":
+      this._moveState.left = 1;
+      break;
+    case "KeyD":
+      this._moveState.right = 1;
+      break;
+    case "KeyR":
+      this._moveState.up = 1;
+      break;
+    case "KeyF":
+      this._moveState.down = 1;
+      break;
+    case "ArrowUp":
+      this._moveState.pitchUp = 1;
+      break;
+    case "ArrowDown":
+      this._moveState.pitchDown = 1;
+      break;
+    case "ArrowLeft":
+      this._moveState.yawLeft = 1;
+      break;
+    case "ArrowRight":
+      this._moveState.yawRight = 1;
+      break;
+    case "KeyQ":
+      this._moveState.rollLeft = 1;
+      break;
+    case "KeyE":
+      this._moveState.rollRight = 1;
+      break;
+  }
+  this._updateMovementVector();
+  this._updateRotationVector();
+}
+function onKeyUp2(event) {
+  if (this.enabled === false)
+    return;
+  switch (event.code) {
+    case "ShiftLeft":
+    case "ShiftRight":
+      this.movementSpeedMultiplier = 1;
+      break;
+    case "KeyW":
+      this._moveState.forward = 0;
+      break;
+    case "KeyS":
+      this._moveState.back = 0;
+      break;
+    case "KeyA":
+      this._moveState.left = 0;
+      break;
+    case "KeyD":
+      this._moveState.right = 0;
+      break;
+    case "KeyR":
+      this._moveState.up = 0;
+      break;
+    case "KeyF":
+      this._moveState.down = 0;
+      break;
+    case "ArrowUp":
+      this._moveState.pitchUp = 0;
+      break;
+    case "ArrowDown":
+      this._moveState.pitchDown = 0;
+      break;
+    case "ArrowLeft":
+      this._moveState.yawLeft = 0;
+      break;
+    case "ArrowRight":
+      this._moveState.yawRight = 0;
+      break;
+    case "KeyQ":
+      this._moveState.rollLeft = 0;
+      break;
+    case "KeyE":
+      this._moveState.rollRight = 0;
+      break;
+  }
+  this._updateMovementVector();
+  this._updateRotationVector();
+}
+function onPointerDown2(event) {
+  if (this.enabled === false)
+    return;
+  if (this.dragToLook) {
+    this._status++;
+  } else {
+    switch (event.button) {
+      case 0:
+        this._moveState.forward = 1;
+        break;
+      case 2:
+        this._moveState.back = 1;
+        break;
+    }
+    this._updateMovementVector();
+  }
+}
+function onPointerMove2(event) {
+  if (this.enabled === false)
+    return;
+  if (!this.dragToLook || this._status > 0) {
+    const container = this._getContainerDimensions();
+    const halfWidth = container.size[0] / 2;
+    const halfHeight = container.size[1] / 2;
+    this._moveState.yawLeft = -(event.pageX - container.offset[0] - halfWidth) / halfWidth;
+    this._moveState.pitchDown = (event.pageY - container.offset[1] - halfHeight) / halfHeight;
+    this._updateRotationVector();
+  }
+}
+function onPointerUp2(event) {
+  if (this.enabled === false)
+    return;
+  if (this.dragToLook) {
+    this._status--;
+    this._moveState.yawLeft = this._moveState.pitchDown = 0;
+  } else {
+    switch (event.button) {
+      case 0:
+        this._moveState.forward = 0;
+        break;
+      case 2:
+        this._moveState.back = 0;
+        break;
+    }
+    this._updateMovementVector();
+  }
+  this._updateRotationVector();
+}
+function onPointerCancel() {
+  if (this.enabled === false)
+    return;
+  if (this.dragToLook) {
+    this._status = 0;
+    this._moveState.yawLeft = this._moveState.pitchDown = 0;
+  } else {
+    this._moveState.forward = 0;
+    this._moveState.back = 0;
+    this._updateMovementVector();
+  }
+  this._updateRotationVector();
+}
+function onContextMenu2(event) {
+  if (this.enabled === false)
+    return;
+  event.preventDefault();
+}
+
+// node_modules/three/examples/jsm/controls/PointerLockControls.js
+var _euler = new Euler(0, 0, 0, "YXZ");
+var _vector = new Vector3;
+var _changeEvent2 = { type: "change" };
+var _lockEvent = { type: "lock" };
+var _unlockEvent = { type: "unlock" };
+var _PI_2 = Math.PI / 2;
+
+class PointerLockControls extends Controls {
+  constructor(camera, domElement = null) {
+    super(camera, domElement);
+    this.isLocked = false;
+    this.minPolarAngle = 0;
+    this.maxPolarAngle = Math.PI;
+    this.pointerSpeed = 1;
+    this._onMouseMove = onMouseMove.bind(this);
+    this._onPointerlockChange = onPointerlockChange.bind(this);
+    this._onPointerlockError = onPointerlockError.bind(this);
+    if (this.domElement !== null) {
+      this.connect();
+    }
+  }
+  connect() {
+    this.domElement.ownerDocument.addEventListener("mousemove", this._onMouseMove);
+    this.domElement.ownerDocument.addEventListener("pointerlockchange", this._onPointerlockChange);
+    this.domElement.ownerDocument.addEventListener("pointerlockerror", this._onPointerlockError);
+  }
+  disconnect() {
+    this.domElement.ownerDocument.removeEventListener("mousemove", this._onMouseMove);
+    this.domElement.ownerDocument.removeEventListener("pointerlockchange", this._onPointerlockChange);
+    this.domElement.ownerDocument.removeEventListener("pointerlockerror", this._onPointerlockError);
+  }
+  dispose() {
+    this.disconnect();
+  }
+  getObject() {
+    console.warn("THREE.PointerLockControls: getObject() has been deprecated. Use controls.object instead.");
+    return this.object;
+  }
+  getDirection(v) {
+    return v.set(0, 0, -1).applyQuaternion(this.object.quaternion);
+  }
+  moveForward(distance) {
+    if (this.enabled === false)
+      return;
+    const camera = this.object;
+    _vector.setFromMatrixColumn(camera.matrix, 0);
+    _vector.crossVectors(camera.up, _vector);
+    camera.position.addScaledVector(_vector, distance);
+  }
+  moveRight(distance) {
+    if (this.enabled === false)
+      return;
+    const camera = this.object;
+    _vector.setFromMatrixColumn(camera.matrix, 0);
+    camera.position.addScaledVector(_vector, distance);
+  }
+  lock() {
+    this.domElement.requestPointerLock();
+  }
+  unlock() {
+    this.domElement.ownerDocument.exitPointerLock();
+  }
+}
+function onMouseMove(event) {
+  if (this.enabled === false || this.isLocked === false)
+    return;
+  const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+  const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+  const camera = this.object;
+  _euler.setFromQuaternion(camera.quaternion);
+  _euler.y -= movementX * 0.002 * this.pointerSpeed;
+  _euler.x -= movementY * 0.002 * this.pointerSpeed;
+  _euler.x = Math.max(_PI_2 - this.maxPolarAngle, Math.min(_PI_2 - this.minPolarAngle, _euler.x));
+  camera.quaternion.setFromEuler(_euler);
+  this.dispatchEvent(_changeEvent2);
+}
+function onPointerlockChange() {
+  if (this.domElement.ownerDocument.pointerLockElement === this.domElement) {
+    this.dispatchEvent(_lockEvent);
+    this.isLocked = true;
+  } else {
+    this.dispatchEvent(_unlockEvent);
+    this.isLocked = false;
+  }
+}
+function onPointerlockError() {
+  console.error("THREE.PointerLockControls: Unable to use Pointer Lock API");
 }
 
 // src/helper.js
@@ -19346,51 +20152,6 @@ function createWalls({ scene }) {
   });
 }
 
-// src/firstPersonMovement.js
-function firstPersonMovement({ camera, camera_group, viewport, help }) {
-  const {
-    listenForKeys,
-    startMouseLock,
-    getKeys,
-    getMouseMovement
-  } = help;
-  const ROT_SPEED = 0.005;
-  const MOVE_SPEED = 0.05;
-  const RUN_SPEED = 0.1;
-  const UP = new Vector3(0, 1, 0);
-  function animate() {
-    const { x, y } = getMouseMovement();
-    if (x > 0)
-      camera_group.rotation.y += -1 * x * ROT_SPEED;
-    if (x < 0)
-      camera_group.rotation.y += -1 * x * ROT_SPEED;
-    if (y > 0)
-      camera.rotation.x += -1 * y * ROT_SPEED;
-    if (y < 0)
-      camera.rotation.x += -1 * y * ROT_SPEED;
-    const FORWARD = new Vector3(0, 0, -1).transformDirection(camera.matrixWorld).projectOnPlane(UP).normalize();
-    const LEFT = new Vector3(-1, 0, 0).transformDirection(camera.matrixWorld).projectOnPlane(UP).normalize();
-    const { keyw: w, keya: a, keys: s, keyd: d, shiftleft: shift } = getKeys();
-    const vec = new Vector3(0, 0, 0);
-    if (w)
-      vec.add(FORWARD);
-    if (a)
-      vec.add(LEFT);
-    if (s)
-      vec.add(FORWARD.multiplyScalar(-1));
-    if (d)
-      vec.add(LEFT.multiplyScalar(-1));
-    camera_group.position.add(vec.normalize().multiplyScalar(shift ? RUN_SPEED : MOVE_SPEED));
-  }
-  (() => {
-    listenForKeys();
-    startMouseLock(viewport);
-  })();
-  return {
-    animate
-  };
-}
-
 // src/fog/perlinNoise.js
 var perlinNoise = () => {
   return { noise: `
@@ -19513,40 +20274,72 @@ function grassMaterial() {
 (() => {
   const help = helper();
   const {
-    getKeys
+    getKeys,
+    startMouseLock
   } = help;
   function main() {
     const scene = new Scene;
+    const clock = new Clock;
     const viewport = document.querySelector(".viewport");
     const view_size = viewport.getBoundingClientRect();
     const camera = new PerspectiveCamera(75, view_size.width / view_size.height, 0.1, 1000);
+    camera.position.x = WIDTH / 2;
+    camera.position.y = 2;
+    camera.position.z = HEIGHT / 2;
     const camera2 = new PerspectiveCamera(75, view_size.width / view_size.height, 0.1, 1000);
     camera2.position.x = WIDTH / 2;
     camera2.position.y = 400;
     camera2.position.z = HEIGHT / 2;
     camera2.rotateX(-1 * Math.PI / 2);
-    const camera_group = new Group;
-    camera_group.add(camera);
-    camera_group.position.x = WIDTH / 2;
-    camera_group.position.y = 2;
-    camera_group.position.z = HEIGHT / 2;
-    const { animate: fpAnimate } = firstPersonMovement({ camera, camera_group, viewport, help });
     const renderer = new WebGLRenderer({
       canvas: viewport
     });
     renderer.setSize(view_size.width, view_size.height);
+    const CONTROLS = {
+      FPS: 0,
+      FLY: 1,
+      ORBIT: 2,
+      MINE: 3,
+      PTR: 4
+    };
+    const ctrls = CONTROLS.PTR;
+    const fpsControls = new FirstPersonControls(camera, renderer.domElement);
+    fpsControls.lookSpeed = 0.5;
+    fpsControls.movementSpeed = 4;
+    const flyControls = new FlyControls(camera, renderer.domElement);
+    flyControls.movementSpeed = 1;
+    flyControls.rollSpeed = 0.05;
+    const ptrControls = new PointerLockControls(camera, renderer.domElement);
+    ptrControls.pointerSpeed = 1;
+    viewport.addEventListener("click", () => {
+      ptrControls.lock();
+    });
     const { material } = grassMaterial();
     const floor = new Mesh(new BoxGeometry(WIDTH, 1, HEIGHT), material);
     floor.position.x = WIDTH / 2;
     floor.position.y = -1;
     floor.position.z = HEIGHT / 2;
     scene.add(floor);
-    scene.add(camera_group);
     createWalls({ scene });
+    function onWindowResize() {
+      fpsControls.handleResize();
+    }
+    window.addEventListener("resize", onWindowResize);
     function animate() {
-      const { space } = getKeys();
-      fpAnimate();
-      renderer.render(scene, !space ? camera2 : camera);
+      switch (ctrls) {
+        case CONTROLS.FPS:
+          fpsControls.update(clock.getDelta());
+          break;
+        case CONTROLS.FLY:
+          flyControls.update(clock.getDelta());
+          break;
+        case CONTROLS.ORBIT:
+          break;
+        case CONTROLS.PTR:
+          ptrControls.update(clock.getDelta());
+          break;
+      }
+      renderer.render(scene, camera);
     }
     renderer.setAnimationLoop(animate);
   }

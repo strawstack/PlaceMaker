@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js';
+import { FlyControls } from 'three/addons/controls/FlyControls.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 import { helper } from './helper';
 
@@ -17,12 +20,14 @@ import { grassMaterial } from './grass/material';
 (() => {
     const help = helper();
     const {
-        getKeys
+        getKeys,
+        startMouseLock
     } = help;
 
     function main() {
         const scene = new THREE.Scene();
-        // const { fog_material, fogAnimate } = fog({ scene });
+        const clock = new THREE.Clock();
+        // const { fog_material, fogAnimate } = fog({ scene, clock });
         
         const viewport = document.querySelector(".viewport");
         const view_size = viewport.getBoundingClientRect();
@@ -30,6 +35,10 @@ import { grassMaterial } from './grass/material';
         const camera = new THREE.PerspectiveCamera( 
             75, view_size.width / view_size.height, 0.1, 1000
         );
+
+        camera.position.x = WIDTH/2;
+        camera.position.y = 2;
+        camera.position.z = HEIGHT/2;
 
         const camera2 = new THREE.PerspectiveCamera( 
             75, view_size.width / view_size.height, 0.1, 1000
@@ -40,22 +49,36 @@ import { grassMaterial } from './grass/material';
         camera2.position.z = HEIGHT/2;
         camera2.rotateX(-1 * Math.PI/2);
         
-        const camera_group = new THREE.Group();
-        camera_group.add(camera);
-        camera_group.position.x = WIDTH/2;
-        camera_group.position.y = 2;
-        camera_group.position.z = HEIGHT/2;
-        
-        const { animate: fpAnimate } = firstPersonMovement({ camera, camera_group, viewport, help });
-
         const renderer = new THREE.WebGLRenderer({
             canvas: viewport
         });
         renderer.setSize( view_size.width, view_size.height );
 
-        const { material } = grassMaterial();
+        const CONTROLS = { 
+            FPS: 0,
+            FLY: 1,
+            ORBIT: 2,
+            MINE: 3,
+            PTR: 4
+        };
+        const ctrls = CONTROLS.PTR;
 
-        // const cube = new THREE.Mesh( geometry, material );
+        const fpsControls = new FirstPersonControls(camera, renderer.domElement);
+        fpsControls.lookSpeed = 0.5;
+        fpsControls.movementSpeed = 4;
+
+        const flyControls = new FlyControls(camera, renderer.domElement);
+        flyControls.movementSpeed = 1;
+        flyControls.rollSpeed = 0.05;
+
+        const ptrControls = new PointerLockControls(camera, renderer.domElement);
+        ptrControls.pointerSpeed = 1;
+    
+        viewport.addEventListener( 'click', () => {
+            ptrControls.lock();
+        });
+
+        const { material } = grassMaterial();
 
         const floor = new THREE.Mesh(
             new THREE.BoxGeometry( WIDTH, 1, HEIGHT ),
@@ -65,27 +88,34 @@ import { grassMaterial } from './grass/material';
         floor.position.y = -1;
         floor.position.z = HEIGHT/2;
 
-        // const cubes = Array(10).fill(0).map(_ => new THREE.Mesh( geometry, fog_material ));
-        // cubes.forEach((cube, i) => {
-        //     cube.position.x = 5 + i * 5;
-        //     scene.add(cube);
-        // });
-
-        // scene.add( cube );
         scene.add( floor );
-        scene.add( camera_group );
 
         createWalls({ scene });
 
+        function onWindowResize() {
+            // camera.aspect = window.innerWidth / window.innerHeight;
+            // camera.updateProjectionMatrix();
+            // renderer.setSize( window.innerWidth, window.innerHeight );
+            fpsControls.handleResize();
+        }
+        window.addEventListener( 'resize', onWindowResize );
+
         function animate() {
-            const { space } = getKeys();
-            // cube.rotation.x += 0.01; 
-            // cube.rotation.y += 0.01;
-
-            fpAnimate();
+            switch (ctrls) {
+                case CONTROLS.FPS:
+                    fpsControls.update( clock.getDelta() );
+                    break;
+                case CONTROLS.FLY:
+                    flyControls.update( clock.getDelta() );
+                    break;
+                case CONTROLS.ORBIT:
+                    break;
+                case CONTROLS.PTR:
+                    ptrControls.update( clock.getDelta() );
+                    break;  
+            }
             
-            renderer.render( scene, !space ? camera2 : camera );
-
+            renderer.render( scene, camera );
             // fogAnimate();
         } 
         renderer.setAnimationLoop( animate );

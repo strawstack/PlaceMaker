@@ -1,8 +1,7 @@
+import * as THREE from 'three';
 import { fogReplace } from "./fogReplace";
 
-export function fog({ scene }) {
-
-    const clock = new THREE.Clock();
+export function fog({ scene, clock }) {
 
     const {
         fogParsVert,
